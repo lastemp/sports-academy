@@ -1,62 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.4.16 <0.9.0;
-
-enum HousingUnitType {OneBedroom, TwoBedroom, ThreeBedroom}
-
-struct PlayerData {
+	
+contract Player {
+    struct PlayerData {
       bytes birthCertificateNumber;
 	  bytes dateOfBirth;
       bool registered;
       bool sold;
       address owner;
     }
-struct CompanyData {
-      bytes businessName;
-	  bytes businessIdentificationNumber;
-      bool registered;
-      bool approved;
-      address owner;
-	  address admin;
-    }
-struct FootballAgentData {
-      bytes businessName;
-	  bytes businessIdentificationNumber;
-	  bytes country;
-      //bool registered;
-      //bool approved;
-      //address owner;
-	  //address admin;
-    }
-struct FootballClubData {
-      bytes businessName;
-	  bytes businessIdentificationNumber;
-	  bytes country;
-      //bool registered;
-      //bool approved;
-      //address owner;
-	  //address admin;
-    }
-struct PlayerPurchaseData {
-      bytes referenceNumber;
-      address player;
-	  FootballAgentData agent;
-	  FootballClubData club;
-	  uint256 purchaseAmount;
-	  bool initialised;
-      bool approved;
-	  address admin;
-    }	
-	
-contract Player {
+
     PlayerData playerData;
 
-    // Errors allow you to provide information about
-    // why an operation failed. They are returned
-    // to the caller of the function.
-    //error InvalidPlayerDetails(bytes birthCertificateNumber, bytes errorDescription);
-
     function registerPlayer(bytes memory birthCertificateNumber_, bytes memory dateOfBirth_) internal returns (PlayerData memory) {
-        //require(birthCertificateNumber_.length > 0, InvalidPlayerDetails(birthCertificateNumber_, bytes("Birth Certificate Number has invalid value.")));
         require(birthCertificateNumber_.length > 0, "Birth Certificate Number has invalid value.");
 		require(dateOfBirth_.length > 0, "Date of birth has invalid value.");
         playerData.birthCertificateNumber = birthCertificateNumber_;
@@ -69,6 +25,14 @@ contract Player {
 }
 
 contract Company {
+struct CompanyData {
+      bytes businessName;
+	  bytes businessIdentificationNumber;
+      bool registered;
+      bool approved;
+      address owner;
+	  address admin;
+    }
 
     CompanyData companyData;
 	
@@ -78,13 +42,7 @@ contract Company {
         companyData.admin = msg.sender;
     }
 
-    // Errors allow you to provide information about
-    // why an operation failed. They are returned
-    // to the caller of the function.
-    //error InvalidCompanyDetails(bytes businessIdentificationNumber, bytes errorDescription);
-
     function registerCompany(bytes memory businessName_, bytes memory businessIdentificationNumber_) internal returns (CompanyData memory) {
-        //require(businessIdentificationNumber_.length > 0, InvalidCompanyDetails(businessIdentificationNumber_, bytes("Business Identification Number has invalid value.")));
         require(businessName_.length > 0, "Business Name has invalid value.");
 		require(businessIdentificationNumber_.length > 0, "Business Identification Number has invalid value.");
         companyData.businessName = businessName_;
@@ -98,6 +56,26 @@ contract Company {
 }
 
 contract PlayerPurchase {
+    struct FootballAgentData {
+      bytes businessName;
+	  bytes businessIdentificationNumber;
+	  bytes country;
+    }
+struct FootballClubData {
+      bytes businessName;
+	  bytes businessIdentificationNumber;
+	  bytes country;
+    }
+struct PlayerPurchaseData {
+      bytes referenceNumber;
+      address player;
+	  FootballAgentData agent;
+	  FootballClubData club;
+	  uint256 purchaseAmount;
+	  bool initialised;
+      bool approved;
+	  address admin;
+    }	
 
     PlayerPurchaseData playerPurchaseData;
 	
@@ -107,18 +85,15 @@ contract PlayerPurchase {
         playerPurchaseData.admin = msg.sender;
     }
 
-    // Errors allow you to provide information about
-    // why an operation failed. They are returned
-    // to the caller of the function.
-    //error InvalidPlayerPurchaseDetails(address player, bytes errorDescription);
-
-    function buyPlayer(address memory player_, FootballAgentData memory agent_, FootballClubData memory club_, uint256 memory purchaseAmount_) internal returns (PlayerPurchaseData memory) {
+    function buyPlayer(bytes memory referenceNumber_, address player_, FootballAgentData memory agent_, FootballClubData memory club_, uint256 purchaseAmount_) internal returns (PlayerPurchaseData memory) {
 	    require(referenceNumber_.length > 0, "Reference Number has invalid value.");
 		require(purchaseAmount_ > 0, "Purchase amount must be greater than zero");
+        playerPurchaseData.referenceNumber = referenceNumber_;
         playerPurchaseData.player = player_;
         playerPurchaseData.agent = agent_;
 		playerPurchaseData.club = club_;
 		playerPurchaseData.initialised = true;
+        playerPurchaseData.purchaseAmount = purchaseAmount_;
 
         return playerPurchaseData;
     }
@@ -187,12 +162,9 @@ contract Vault {
 contract SportsAcademyProgram is Player, Company, PlayerPurchase, Vault {
     struct SportsAcademyProgramData {
       mapping(address => PlayerData) players;
-      //mapping(bytes => InsuranceCompanyData) insuranceCompanies;
-      //mapping(bytes => InsurancePolicyData) insurancePolicies;
-	  CompanyData company;
+	  CompanyData companyData;
 	  mapping(bytes => PlayerPurchaseData) playerPurchases;
       uint256 totalPurchaseAmount;
-	  //uint256 totalPayments;
       uint16 totalPlayersSold;
       address admin;
     }
@@ -223,36 +195,40 @@ contract SportsAcademyProgram is Player, Company, PlayerPurchase, Vault {
 		require(businessIdentificationNumber_.length > 0, "Business Identification Number has invalid value.");
 
         // Check if company is already registered
-		require(!company.registered, "Company is already registered");
+        CompanyData memory companyData = sportsAcademyProgram.companyData;
+		require(!companyData.registered, "Company is already registered");
 
         // call registerCompany in contract Company
-		company = registerCompany(businessName_, businessIdentificationNumber_);
+		sportsAcademyProgram.companyData = registerCompany(businessName_, businessIdentificationNumber_);
     }
-	// function buyPlayer(address memory player_, FootballAgentData memory agent_, FootballClubData memory club_, uint256 memory purchaseAmount_) internal returns (PlayerPurchaseData memory) {
-	function buyPlayer(bytes memory referenceNumber_, address memory player_, FootballAgentData memory agent_, FootballClubData memory club_) external {
-        require(referenceNumber_.length > 0, "Reference Number has invalid value.");
-		//require(policyPremium_ > 0, "Policy premium amount must be greater than zero");
 
-        // Check if player purchase was already previously completed
+	function buyNewPlayer(bytes memory referenceNumber_, address player_, FootballAgentData memory agent_, FootballClubData memory club_, uint256 purchaseAmount_) external {
+        require(referenceNumber_.length > 0, "Reference Number has invalid value.");
+		require(purchaseAmount_ > 0, "Purchase amount must be greater than zero");
+
+        // Check if player purchase was already completed
         PlayerPurchaseData memory playerPurchaseData = sportsAcademyProgram.playerPurchases[referenceNumber_];
-        require(!playerPurchaseData.initialised, "Player purchase was already previously completed");
+        require(!playerPurchaseData.initialised, "Player purchase was already completed");
 
         // call buyPlayer in contract PlayerPurchase
         PlayerPurchaseData memory playerPurchaseData_ = buyPlayer(referenceNumber_, player_, agent_, club_, purchaseAmount_);
         sportsAcademyProgram.playerPurchases[referenceNumber_] = playerPurchaseData_;
     }
 	
-	function depositFunds(address memory player_) external payable {
+	function depositFunds(address player_, bytes memory referenceNumber_) external payable {
+        require(referenceNumber_.length > 0, "Reference Number has invalid value.");
         require(msg.value > 0, "Deposit amount must be greater than zero");
+
 		PlayerData memory playerData = sportsAcademyProgram.players[player_];
+
         require(playerData.registered, "Player is not registered");
 		require(!playerData.sold, "Player is already sold");
+
 		PlayerPurchaseData memory playerPurchaseData = sportsAcademyProgram.playerPurchases[referenceNumber_];
+
         require(playerPurchaseData.initialised, "Player purchase is not registered");
 		require(msg.value == playerPurchaseData.purchaseAmount, "Deposit amount must be equal to player purchase amount");
 		
-		
-
         deposit();
 		playerPurchaseData.approved = true;
 		playerData.sold = true;
