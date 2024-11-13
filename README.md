@@ -9,3 +9,9 @@ Below are some features contained in the program:
 - Register sports company i.e academy
 - Buy player
 - Make deposits using Ether
+
+## Running the test program
+
+```
+npx hardhat test
+```
