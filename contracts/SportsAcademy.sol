@@ -237,4 +237,16 @@ contract SportsAcademyProgram is Player, Company, PlayerPurchase, Vault {
         
     }
 	
+	function getPlayerData(address player_) external view returns (PlayerData memory) {
+        return sportsAcademyProgram.players[player_];
+    }
+	
+	function getCompanyData() external view returns (CompanyData memory) {
+        return sportsAcademyProgram.companyData;
+    }
+	
+	function getPlayerPurchaseData(bytes memory referenceNumber_) external view returns (PlayerPurchaseData memory) {
+        return sportsAcademyProgram.playerPurchases[referenceNumber_];
+    }
+	
 }
